@@ -139,7 +139,8 @@ export default function Home(){
     <header className="topbar"><div><span className="eyebrow">SNS PROFILE MAKER</span><h1>Profile Book <small>プロフィール帳</small></h1><p>必要な項目だけ選んで、自分だけのプロフィールカードを作ろう。</p></div><div className="top-actions"><button className="share" onClick={shareCard}>共有する ↗</button><button className="export" onClick={exportCard}>PNGを書き出す ↗</button></div></header>
     <div className="workspace">
       <aside className="panel">
-        <section className="restore-section"><h2>PNGから復元</h2><label className="upload-box restore-box">前回のPNGを読み込む<input type="file" accept="image/png" onChange={importPng}/></label><p className="hint">Profile Bookから書き出したPNGなら、入力内容・デザイン・画像まで復元できます。</p></section>\n        <section><h2>基本情報</h2>
+        <section className="restore-section"><h2>PNGから復元</h2><label className="upload-box restore-box">前回のPNGを読み込む<input type="file" accept="image/png" onChange={importPng}/></label><p className="hint">Profile Bookから書き出したPNGなら、入力内容・デザイン・画像まで復元できます。</p></section>
+        <section><h2>基本情報</h2>
           <label>名前<input value={profile.name} onChange={e=>update({name:e.target.value})} placeholder="あなたの名前を入力してね"/></label>
           <label>ID<input value={profile.username} onChange={e=>update({username:e.target.value})} placeholder="@username など"/></label>
           <label>ひとこと<textarea rows={2} value={profile.intro} onChange={e=>update({intro:e.target.value})} placeholder="好きなことや一言をどうぞ…"/></label>
