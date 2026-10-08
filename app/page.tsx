@@ -6,7 +6,8 @@ import { toPng } from "html-to-image";
 
 type Template = "book" | "minimal" | "pop" | "diary" | "holes" | "sticker" | "notebook" | "scrap";
 type FontKey = "sans" | "rounded" | "serif" | "mono" | "cute" | "hand";
-type Item = { id:string; label:string; value:string; kind:"text"|"long"|"check"|"chips"|"stance" };
+type Kind = "text"|"long"|"check"|"chips"|"stance";
+type Item = { id:string; label:string; value:string; kind:Kind; custom?:boolean };
 type Profile = { name:string; username:string; intro:string; items:Item[] };
 
 const presets = {
@@ -28,8 +29,42 @@ const fontMap:Record<FontKey,string> = {
 
 const stanceOptions = [
   ["follow","フォロー歓迎"],["followBack","フォロバOK"],["dm","DM OK"],
-  ["mutual","相互希望"],["silentFollow","自分も無言フォローします"],["rt","RT歓迎"],["like","いいね歓迎"]
+  ["mutual","相互希望"],["silentFollow","無言フォローします"],["rt","RT歓迎"],["like","いいね歓迎"]
 ] as const;
+
+function crc32(bytes:Uint8Array){
+  let c=0xffffffff;
+  for(const b of bytes){c^=b;for(let k=0;k<8;k++)c=(c>>>1)^((c&1)?0xedb88320:0);}
+  return (c^0xffffffff)>>>0;
+}
+function withMetadata(dataUrl:string,payload:unknown){
+  const raw=atob(dataUrl.split(",")[1]);const src=new Uint8Array(raw.length);
+  for(let i=0;i<raw.length;i++)src[i]=raw.charCodeAt(i);
+  const enc=new TextEncoder();const type=enc.encode("tEXt");const body=enc.encode("profile-book\0"+JSON.stringify(payload));
+  const data=new Uint8Array(4+type.length+body.length+4);new DataView(data.buffer).setUint32(0,body.length);
+  data.set(type,4);data.set(body,8);const crcInput=new Uint8Array(type.length+body.length);crcInput.set(type);crcInput.set(body,4);
+  new DataView(data.buffer).setUint32(8+body.length,crc32(crcInput));
+  const pos=src.length-12;const out=new Uint8Array(src.length+data.length);out.set(src.slice(0,pos));out.set(data,pos);out.set(src.slice(pos),pos+data.length);
+  let s="";for(let i=0;i<out.length;i+=0x8000)s+=String.fromCharCode(...out.subarray(i,i+0x8000));
+  return "data:image/png;base64,"+btoa(s);
+}
+async function readMetadata(file:File){
+  const buf=new Uint8Array(await file.arrayBuffer());
+  if(buf[0]!==137||buf[1]!==80||buf[2]!==78||buf[3]!==71)return null;
+  let p=8;
+  while(p+12<=buf.length){
+    const len=new DataView(buf.buffer).getUint32(p);const type=String.fromCharCode(...buf.slice(p+4,p+8));
+    if(type==="tEXt"){
+      const data=buf.slice(p+8,p+8+len);const zero=data.indexOf(0);
+      if(new TextDecoder().decode(data.slice(0,zero))==="profile-book"){
+        try{return JSON.parse(new TextDecoder().decode(data.slice(zero+1)))}catch{return null}
+      }
+    }
+    p+=12+len;if(type==="IEND")break;
+  }
+  return null;
+}
+
 const getStance = (value:string) => {
   try {
     const parsed = JSON.parse(value);
@@ -51,19 +86,32 @@ export default function Home(){
   const [font,setFont]=useState<FontKey>("rounded");
   const [colors,setColors]=useState(presets.sakura);
   const [avatarImage,setAvatarImage]=useState<string>("");
-  const [profile,setProfile]=useState<Profile>({
-    name:"",username:"",intro:"",
-    items:[]
-  });
+  const [profile,setProfile]=useState<Profile>({name:"",username:"",intro:"",items:[]});
+  const [customLabel,setCustomLabel]=useState("");
+  const [customKind,setCustomKind]=useState<Kind>("text");
   const cardRef=useRef<HTMLDivElement>(null);
   useEffect(()=>{const s=localStorage.getItem("profile-book-data");if(s){try{const x=JSON.parse(s);if(x.profile)setProfile(x.profile);if(x.avatarImage)setAvatarImage(x.avatarImage);if(x.colors)setColors(x.colors);if(x.template)setTemplate(x.template);if(x.font)setFont(x.font)}catch{}}},[]);
   useEffect(()=>{try{localStorage.setItem("profile-book-data",JSON.stringify({profile,avatarImage,colors,template,font}))}catch{localStorage.removeItem("profile-book-data")}},[profile,avatarImage,colors,template,font]);
   const selected=useMemo(()=>new Set(profile.items.map(x=>x.id)),[profile.items]);
   const update=(p:Partial<Profile>)=>setProfile(x=>({...x,...p}));
   const updateItem=(id:string,value:string)=>setProfile(x=>({...x,items:x.items.map(i=>i.id===id?{...i,value}:i)}));
-  const addItem=(id:string,label:string,kind:Item["kind"])=>{
+  const addItem=(id:string,label:string,kind:Kind)=>{
     if(selected.has(id))return;
-    setProfile(x=>({...x,items:[...x.items,{id,label,value:kind==="check"?"ON":kind==="stance"?"[]":"",kind}]}));
+    setProfile(x=>{
+      const added={id,label,value:kind==="check"?"ON":kind==="stance"?"[]":"",kind};
+      const next=[...x.items,added];
+      if(id!=="free"){const free=next.find(i=>i.id==="free");return free?next.filter(i=>i.id!=="free").concat(free):next}
+      return next;
+    });
+  };
+  const addCustom=()=>{
+    const label=customLabel.trim();if(!label)return;
+    const id="custom-"+Date.now();
+    setProfile(x=>({...x,items:[...x.items,{id,label,value:customKind==="stance"?"[]":"",kind:customKind,custom:true}]}));
+    setCustomLabel("");
+  };
+  const moveItem=(index:number,direction:-1|1)=>{
+    setProfile(x=>{const next=[...x.items];const target=index+direction;if(target<0||target>=next.length)return x;[next[index],next[target]]=[next[target],next[index]];return {...x,items:next}});
   };
   const toggleStance=(itemId:string,stanceId:string)=>{
     const item=profile.items.find(i=>i.id===itemId);
@@ -73,10 +121,18 @@ export default function Home(){
     updateItem(itemId,JSON.stringify(next));
   };
   const removeItem=(id:string)=>setProfile(x=>({...x,items:x.items.filter(i=>i.id!==id)}));
-  const makePng=async()=>cardRef.current?await toPng(cardRef.current,{pixelRatio:2,cacheBust:true}):null;
+  const makePayload=()=>({version:1,profile,avatarImage,colors,template,font});
+  const makePng=async()=>{if(!cardRef.current)return null;const png=await toPng(cardRef.current,{pixelRatio:2,cacheBust:true});return withMetadata(png,makePayload())};
   const exportCard=async()=>{const url=await makePng();if(!url)return;const a=document.createElement("a");a.download="profile-book.png";a.href=url;a.click()};
   const shareCard=async()=>{const url=await makePng();if(!url)return;try{const res=await fetch(url);const blob=await res.blob();const file=new File([blob],"profile-book.png",{type:"image/png"});if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){await navigator.share({title:"Profile Book",text:"SNSプロフィールカード",files:[file]});}else{await navigator.clipboard?.writeText(location.href);alert("共有リンクをコピーしました！");}}catch{}};
   const handleImage=(e:React.ChangeEvent<HTMLInputElement>)=>{const file=e.target.files?.[0];if(!file)return;if(!file.type.startsWith("image/"))return;const reader=new FileReader();reader.onload=()=>setAvatarImage(String(reader.result));reader.readAsDataURL(file)};
+  const importPng=async(e:React.ChangeEvent<HTMLInputElement>)=>{
+    const file=e.target.files?.[0];if(!file)return;
+    const data=await readMetadata(file);
+    if(!data?.profile){alert("Profile Bookで書き出したPNGではないようです。");return}
+    setProfile(data.profile);if(data.avatarImage)setAvatarImage(data.avatarImage);if(data.colors)setColors(data.colors);if(data.template)setTemplate(data.template);if(data.font)setFont(data.font);
+    alert("プロフィールを復元しました！");e.target.value="";
+  };
 
   return <main className="app">
     <nav className="breadcrumb"><a href="https://mofu-mitsu.github.io/">ホーム</a><span>＜</span><a href="https://mofu-mitsu.github.io/contents.html">コンテンツ一覧</a><span>＜</span><strong>Profile Book</strong></nav>
@@ -102,7 +158,7 @@ export default function Home(){
               })}
             </div>:
              item.kind==="check"?<div className="check-row"><button className={item.value==="ON"?"toggle on":"toggle"} onClick={()=>updateItem(item.id,item.value==="ON"?"OFF":"ON")}>{item.value==="ON"?"ON":"OFF"}</button><span>ONならカードに表示</span></div>:
-             item.kind==="chips"?<input value={item.value} onChange={e=>updateItem(item.id,e.target.value)} placeholder="項目1 / 項目2 / 項目3"/>:
+             item.kind==="chips"?<div className="favorite-editor">{item.value.split("\n").filter((_,i,a)=>i<a.length).map((v,i)=>{const values=item.value.split("\n");return <div className="repeat-row" key={i}><input value={v} onChange={e=>{values[i]=e.target.value;updateItem(item.id,values.join("\n"))}} placeholder={`項目${i+1}`}/><button onClick={()=>{values.splice(i,1);updateItem(item.id,values.join("\n"))}}>×</button></div>})}<button className="add-row" onClick={()=>updateItem(item.id,item.value+(item.value?"\n":""))}>＋ 項目を増やす</button></div>:
              item.kind==="long"?<textarea rows={4} value={item.value} onChange={e=>updateItem(item.id,e.target.value)} placeholder={item.label+"を入力…"} />:
              <input value={item.value} onChange={e=>updateItem(item.id,e.target.value)} placeholder={item.label+"を入力…"} />}
           </div>)}
