@@ -159,7 +159,7 @@ export default function Home(){
               })}
             </div>:
              item.kind==="check"?<div className="check-row"><button className={item.value==="ON"?"toggle on":"toggle"} onClick={()=>updateItem(item.id,item.value==="ON"?"OFF":"ON")}>{item.value==="ON"?"ON":"OFF"}</button><span>ONならカードに表示</span></div>:
-             item.kind==="chips"?<div className="favorite-editor">{item.value.split("\n").filter((_,i,a)=>i<a.length).map((v,i)=>{const values=item.value.split("\n");return <div className="repeat-row" key={i}><input value={v} onChange={e=>{values[i]=e.target.value;updateItem(item.id,values.join("\n"))}} placeholder={`項目${i+1}`}/><button onClick={()=>{values.splice(i,1);updateItem(item.id,values.join("\n"))}}>×</button></div>})}<button className="add-row" onClick={()=>updateItem(item.id,item.value+(item.value?"\n":""))}>＋ 項目を増やす</button></div>:
+             item.kind==="chips"?<div className="favorite-editor">{(item.value?item.value.split("\n"):[""]).map((v,i)=>{const values=item.value?item.value.split("\n"):[""];return <div className="repeat-row" key={i}><input value={v} onChange={e=>{values[i]=e.target.value;updateItem(item.id,values.join("\n"))}} placeholder={`項目${i+1}`}/><button onClick={()=>{values.splice(i,1);updateItem(item.id,values.join("\n"))}}>×</button></div>})}<button className="add-row" onClick={()=>updateItem(item.id,item.value+(item.value?"\n":""))}>＋ 項目を増やす</button></div>:
              item.kind==="long"?<textarea rows={4} value={item.value} onChange={e=>updateItem(item.id,e.target.value)} placeholder={item.label+"を入力…"} />:
              <input value={item.value} onChange={e=>updateItem(item.id,e.target.value)} placeholder={item.label+"を入力…"} />}
           </div>)}
