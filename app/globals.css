@@ -15,31 +15,29 @@
 .rakuten-widget{padding-top:8px!important;text-align:center;border-bottom:0!important}.rakuten-widget:empty{display:none}.rakuten-widget iframe{max-width:100%}
 @media(max-width:760px){.modal-backdrop{padding:14px}.about-modal{padding:24px 20px}.profile-item.kind-free{grid-column:1/-1}.profile-item.kind-long.is-compact,.profile-item.kind-stance.is-compact{grid-column:span 2}.profile-item.kind-long.is-tall,.profile-item.kind-stance.is-tall{grid-column:span 2}}
 
-/* Full-bleed free space: extend to the inside edge of the profile card */
+/* Free space spans the full content grid, aligned with the neighboring profile items */
 .profile-item.is-free{
-  grid-column:1/-1;
-  width:calc(100% + 124px);
-  margin-left:-62px;
-  margin-right:-62px;
-  border-radius:0;
-  padding-left:62px;
-  padding-right:62px;
+  grid-column:1/-1 !important;
+  width:100%;
+  margin:0;
+  border-radius:12px;
+  padding:13px 15px;
   min-height:100px;
 }
-.template-holes .profile-item.is-free{
-  width:calc(100% + 148px);
-  margin-left:-86px;
-  margin-right:-62px;
-  padding-left:86px;
-  padding-right:62px;
+.stance-values{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:7px;
 }
-.rakuten-widget{display:flex;justify-content:center;align-items:center;min-height:180px;overflow:hidden}
-.rakuten-widget #rakuten-widget-container{width:100%;min-height:160px;display:flex;justify-content:center;align-items:center}
-.rakuten-widget #rakuten-widget-container iframe{max-width:100%;border:0}
+.stance-values span{
+  text-align:center;
+  white-space:normal;
+}
+.rakuten-widget{display:block;text-align:center;border-bottom:0!important;padding-top:12px!important}
+.rakuten-widget h2{margin-bottom:8px;color:#8b6d80}
+.rakuten-widget iframe{display:block;width:100%;max-width:468px;height:180px;margin:0 auto;border:0;overflow:hidden}
 @media(max-width:760px){
-  .profile-item.is-free{width:calc(100% + 52px);margin-left:-26px;margin-right:-26px;padding-left:26px;padding-right:26px}
-  .template-holes .profile-item.is-free{width:calc(100% + 84px);margin-left:-58px;margin-right:-26px;padding-left:58px;padding-right:26px}
+  .profile-item.is-free{width:100%;margin:0;padding:13px 15px}
+  .template-holes .profile-item.is-free{width:100%;margin:0;padding:13px 15px}
+  .stance-values{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
-
-/* The free-space item must override the compact/tall long-text grid rules */
-.profile-item.kind-long.is-free{grid-column:1/-1}
