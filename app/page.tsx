@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import { toPng } from "html-to-image";
 
-type Template = "book" | "minimal" | "pop" | "diary";
+type Template = "book" | "minimal" | "pop" | "diary" | "holes" | "sticker" | "notebook" | "scrap";
 type FontKey = "sans" | "rounded" | "serif" | "mono" | "cute" | "hand";
 type Item = { id:string; label:string; value:string; kind:"text"|"long"|"check"|"chips"|"stance" };
 type Profile = { name:string; username:string; intro:string; items:Item[] };
@@ -26,8 +27,8 @@ const fontMap:Record<FontKey,string> = {
 };
 
 const stanceOptions = [
-  ["follow","フォロー歓迎"],["followBack","フォロバOK"],["reply","リプOK"],["dm","DM OK"],
-  ["mutual","相互希望"],["silentFollow","無言フォローOK"],["rt","RT歓迎"],["like","いいね歓迎"]
+  ["follow","フォロー歓迎"],["followBack","フォロバOK"],["dm","DM OK"],
+  ["mutual","相互希望"],["silentFollow","自分も無言フォローします"],["rt","RT歓迎"],["like","いいね歓迎"]
 ] as const;
 const getStance = (value:string) => {
   try {
@@ -40,7 +41,7 @@ const getStance = (value:string) => {
 
 const itemOptions = [
   ["nickname","呼び名","text"],["age","年齢","text"],["birthday","誕生日","text"],["mbti","MBTI","text"],
-  ["socionics","ソシオニクス","text"],["enneagram","エニアグラム","text"],["from","出身","text"],["gender","性別","text"],
+  ["from","出身","text"],["gender","性別","text"],
   ["favorite","好きなもの","chips"],["hobby","趣味","long"],["stance","SNSスタンス","stance"],
   ["landmine","地雷","long"],["connection","繋がり希望","long"],["free","フリースペース","long"]
 ] as const;
@@ -49,13 +50,14 @@ export default function Home(){
   const [template,setTemplate]=useState<Template>("book");
   const [font,setFont]=useState<FontKey>("rounded");
   const [colors,setColors]=useState(presets.sakura);
+  const [avatarImage,setAvatarImage]=useState<string>("");
   const [profile,setProfile]=useState<Profile>({
     name:"",username:"",intro:"",
     items:[]
   });
   const cardRef=useRef<HTMLDivElement>(null);
-  useEffect(()=>{const s=localStorage.getItem("profile-book-data");if(s){try{const x=JSON.parse(s);if(x.profile)setProfile(x.profile);if(x.colors)setColors(x.colors);if(x.template)setTemplate(x.template);if(x.font)setFont(x.font)}catch{}}},[]);
-  useEffect(()=>{localStorage.setItem("profile-book-data",JSON.stringify({profile,colors,template,font}))},[profile,colors,template,font]);
+  useEffect(()=>{const s=localStorage.getItem("profile-book-data");if(s){try{const x=JSON.parse(s);if(x.profile)setProfile(x.profile);if(x.avatarImage)setAvatarImage(x.avatarImage);if(x.colors)setColors(x.colors);if(x.template)setTemplate(x.template);if(x.font)setFont(x.font)}catch{}}},[]);
+  useEffect(()=>{try{localStorage.setItem("profile-book-data",JSON.stringify({profile,avatarImage,colors,template,font}))}catch{localStorage.removeItem("profile-book-data")}},[profile,avatarImage,colors,template,font]);
   const selected=useMemo(()=>new Set(profile.items.map(x=>x.id)),[profile.items]);
   const update=(p:Partial<Profile>)=>setProfile(x=>({...x,...p}));
   const updateItem=(id:string,value:string)=>setProfile(x=>({...x,items:x.items.map(i=>i.id===id?{...i,value}:i)}));
@@ -71,10 +73,14 @@ export default function Home(){
     updateItem(itemId,JSON.stringify(next));
   };
   const removeItem=(id:string)=>setProfile(x=>({...x,items:x.items.filter(i=>i.id!==id)}));
-  const exportCard=async()=>{if(!cardRef.current)return;const url=await toPng(cardRef.current,{pixelRatio:2,cacheBust:true});const a=document.createElement("a");a.download="profile-book.png";a.href=url;a.click()};
+  const makePng=async()=>cardRef.current?await toPng(cardRef.current,{pixelRatio:2,cacheBust:true}):null;
+  const exportCard=async()=>{const url=await makePng();if(!url)return;const a=document.createElement("a");a.download="profile-book.png";a.href=url;a.click()};
+  const shareCard=async()=>{const url=await makePng();if(!url)return;try{const res=await fetch(url);const blob=await res.blob();const file=new File([blob],"profile-book.png",{type:"image/png"});if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){await navigator.share({title:"Profile Book",text:"SNSプロフィールカード",files:[file]});}else{await navigator.clipboard?.writeText(location.href);alert("共有リンクをコピーしました！");}}catch{}};
+  const handleImage=(e:React.ChangeEvent<HTMLInputElement>)=>{const file=e.target.files?.[0];if(!file)return;if(!file.type.startsWith("image/"))return;const reader=new FileReader();reader.onload=()=>setAvatarImage(String(reader.result));reader.readAsDataURL(file)};
 
   return <main className="app">
-    <header className="topbar"><div><span className="eyebrow">SNS PROFILE MAKER</span><h1>Profile Book <small>プロフィール帳</small></h1><p>必要な項目だけ選んで、自分だけのプロフィールカードを作ろう。</p></div><button className="export" onClick={exportCard}>PNGを書き出す ↗</button></header>
+    <nav className="breadcrumb"><a href="https://mofu-mitsu.github.io/">ホーム</a><span>＜</span><a href="https://mofu-mitsu.github.io/contents.html">コンテンツ一覧</a><span>＜</span><strong>Profile Book</strong></nav>
+    <header className="topbar"><div><span className="eyebrow">SNS PROFILE MAKER</span><h1>Profile Book <small>プロフィール帳</small></h1><p>必要な項目だけ選んで、自分だけのプロフィールカードを作ろう。</p></div><div className="top-actions"><button className="share" onClick={shareCard}>共有する ↗</button><button className="export" onClick={exportCard}>PNGを書き出す ↗</button></div></header>
     <div className="workspace">
       <aside className="panel">
         <section><h2>基本情報</h2>
@@ -102,15 +108,22 @@ export default function Home(){
           </div>)}
         </section>
         <section><h2>デザイン</h2>
-          <div className="choice-row">{(["book","minimal","pop","diary"] as Template[]).map(t=><button key={t} className={template===t?"choice active":"choice"} onClick={()=>setTemplate(t)}>{t==="book"?"Profile Book":t==="minimal"?"Minimal":t==="pop"?"Pop":"Diary"}</button>)}</div>
-          <div className="choice-row">{Object.keys(presets).map(k=><button key={k} className="color-dot" style={{background:presets[k as keyof typeof presets].main}} onClick={()=>setColors(presets[k as keyof typeof presets])}/>)}</div>
+          <div className="design-grid">{(["book","minimal","pop","diary","holes","sticker","notebook","scrap"] as Template[]).map(t=><button key={t} className={template===t?"choice active":"choice"} onClick={()=>setTemplate(t)}>{t==="book"?"Profile Book":t==="minimal"?"Minimal":t==="pop"?"Pop":t==="diary"?"Diary":t==="holes"?"穴あき帳":t==="sticker"?"Sticker":t==="notebook"?"Notebook":"Scrap"}</button>)}</div>
+          <h3 className="subheading">カラー</h3>
+          <div className="choice-row">{Object.keys(presets).map(k=><button aria-label={k} key={k} className="color-dot" style={{background:presets[k as keyof typeof presets].main}} onClick={()=>setColors(presets[k as keyof typeof presets])}/>)}</div>
           <div className="color-inputs">{(["bg","main","accent","text"] as const).map(k=><label key={k}>{k}<input type="color" value={colors[k]} onChange={e=>setColors(c=>({...c,[k]:e.target.value}))}/></label>)}</div>
+          <h3 className="subheading">フォント</h3>
           <select value={font} onChange={e=>setFont(e.target.value as FontKey)}><option value="sans">Clean Sans</option><option value="rounded">Rounded</option><option value="serif">Classic Serif</option><option value="mono">Mono</option><option value="cute">Cute Pop</option><option value="hand">手書き・雑文字</option></select>
         </section>
+        <section><h2>プロフィール画像</h2>
+          <label className="upload-box">画像を選ぶ<input type="file" accept="image/*" onChange={handleImage}/></label>
+          {avatarImage&&<button className="clear-image" onClick={()=>setAvatarImage("")}>画像を削除</button>}
+          <p className="hint">正方形に近い画像がおすすめ。カードの丸いアイコンに入ります。</p>
+        </section>
       </aside>
-      <section className="preview-area"><div className="preview-label"><span>LIVE PREVIEW</span><span>1200 × 630</span></div>
-        <div className="card-wrap"><div ref={cardRef} className={"profile-card template-"+template} style={{"--bg":colors.bg,"--main":colors.main,"--accent":colors.accent,"--text":colors.text,"--sub":colors.sub,"--font":fontMap[font]} as React.CSSProperties}>
-          <div className="card-deco">✦</div><div className="card-top"><div className="avatar"><span>{profile.name.slice(0,1)||"♡"}</span></div>
+      <section className="preview-area"><div className="preview-label"><span>LIVE PREVIEW</span><span>1200px × 可変高</span></div>
+        <div className="card-wrap"><div ref={cardRef} className={"profile-card template-"+template} style={{"--bg":colors.bg,"--main":colors.main,"--accent":colors.accent,"--text":colors.text,"--sub":colors.sub,"--font":fontMap[font]} as CSSProperties}>
+          <div className="card-deco">✦</div><div className="card-top"><div className="avatar">{avatarImage?<img src={avatarImage} alt="" />:<span>{profile.name.slice(0,1)||"♡"}</span>}</div>
           <div className="identity"><div className="name">{profile.name||"Your Name"}</div><div className="handle">{profile.username||"@username"}</div><div className="intro">{profile.intro}</div></div>
           <div className="book-mark">PROFILE<br/>BOOK</div></div>
           <div className="items">{profile.items.map(item=><div className={"profile-item kind-"+item.kind} key={item.id}><div className="item-label">{item.label}</div>
