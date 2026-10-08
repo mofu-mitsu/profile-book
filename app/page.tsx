@@ -146,11 +146,12 @@ export default function Home(){
         </section>
         <section><div className="section-title"><h2>項目を追加</h2><span>{profile.items.length} selected</span></div>
           <div className="option-grid">{itemOptions.map(([id,label,kind])=><button key={id} className={selected.has(id)?"option selected":"option"} onClick={()=>selected.has(id)?removeItem(id):addItem(id,label,kind as Item["kind"])}><span>{selected.has(id)?"✓":"+"}</span>{label}</button>)}</div>
+          <div className="custom-add"><h3>独自項目</h3><div className="custom-row"><input value={customLabel} onChange={e=>setCustomLabel(e.target.value)} placeholder="項目名を入力"/><select value={customKind} onChange={e=>setCustomKind(e.target.value as Kind)}><option value="text">一行</option><option value="long">長文</option><option value="chips">複数項目</option></select></div><button className="add-custom" onClick={addCustom}>＋ 新たに項目を追加</button></div>
         </section>
-        <section><h2>選択した項目</h2>
+        <section><div className="section-title"><h2>選択した項目</h2><span>↑↓で並べ替え</span></div>
           {!profile.items.length&&<p className="hint">上から好きな項目を選んでね。</p>}
-          {profile.items.map(item=><div className="item-editor" key={item.id}>
-            <div className="item-head"><strong>{item.label}</strong><button onClick={()=>removeItem(item.id)}>削除</button></div>
+          {profile.items.map((item,index)=><div className="item-editor" key={item.id}>
+            <div className="item-head"><strong>{item.label}</strong><div className="item-actions"><button disabled={index===0} onClick={()=>moveItem(index,-1)}>↑</button><button disabled={index===profile.items.length-1} onClick={()=>moveItem(index,1)}>↓</button><button className="delete" onClick={()=>removeItem(item.id)}>削除</button></div></div>
             {item.kind==="stance"?<div className="stance-checks">
               {stanceOptions.map(([id,label])=>{
                 const checked=getStance(item.value).includes(id);
@@ -176,6 +177,7 @@ export default function Home(){
           {avatarImage&&<button className="clear-image" onClick={()=>setAvatarImage("")}>画像を削除</button>}
           <p className="hint">正方形に近い画像がおすすめ。カードの丸いアイコンに入ります。</p>
         </section>
+        <section><h2>PNGから復元</h2><label className="upload-box restore-box">前回のPNGを読み込む<input type="file" accept="image/png" onChange={importPng}/></label><p className="hint">Profile Bookから書き出したPNGなら、入力内容・デザイン・画像まで復元できます。</p></section>
       </aside>
       <section className="preview-area"><div className="preview-label"><span>LIVE PREVIEW</span><span>1200px × 可変高</span></div>
         <div className="card-wrap"><div ref={cardRef} className={"profile-card template-"+template} style={{"--bg":colors.bg,"--main":colors.main,"--accent":colors.accent,"--text":colors.text,"--sub":colors.sub,"--font":fontMap[font]} as CSSProperties}>
