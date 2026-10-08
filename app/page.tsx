@@ -8,7 +8,8 @@ type Template = "book" | "minimal" | "pop" | "diary" | "holes" | "sticker" | "no
 type FontKey = "sans" | "rounded" | "serif" | "mono" | "cute" | "hand";
 type Kind = "text"|"long"|"check"|"chips"|"stance";
 type Item = { id:string; label:string; value:string; kind:Kind; custom?:boolean };
-type Profile = { name:string; username:string; intro:string; items:Item[] };\ntype CustomDef = { id:string; label:string; kind:Kind };
+type Profile = { name:string; username:string; intro:string; items:Item[] };
+type CustomDef = { id:string; label:string; kind:Kind };
 
 const presets = {
   sakura:{bg:"#fff7fb",main:"#ff8fb3",accent:"#ffd5e2",text:"#4b3540",sub:"#fff0f5"},
