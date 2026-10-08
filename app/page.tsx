@@ -102,7 +102,7 @@ export default function Home(){
               })}
             </div>:
              item.kind==="check"?<div className="check-row"><button className={item.value==="ON"?"toggle on":"toggle"} onClick={()=>updateItem(item.id,item.value==="ON"?"OFF":"ON")}>{item.value==="ON"?"ON":"OFF"}</button><span>ONならカードに表示</span></div>:
-             item.kind==="chips"?<input value={item.value} onChange={e=>updateItem(item.id,e.target.value)} placeholder="好きなものを / で区切る"/>:
+             item.kind==="chips"?<input value={item.value} onChange={e=>updateItem(item.id,e.target.value)} placeholder="項目1 / 項目2 / 項目3"/>:
              item.kind==="long"?<textarea rows={4} value={item.value} onChange={e=>updateItem(item.id,e.target.value)} placeholder={item.label+"を入力…"} />:
              <input value={item.value} onChange={e=>updateItem(item.id,e.target.value)} placeholder={item.label+"を入力…"} />}
           </div>)}
