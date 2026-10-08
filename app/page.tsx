@@ -172,12 +172,12 @@ export default function Home(){
           <h3 className="subheading">フォント</h3>
           <select value={font} onChange={e=>setFont(e.target.value as FontKey)}><option value="sans">Clean Sans</option><option value="rounded">Rounded</option><option value="serif">Classic Serif</option><option value="mono">Mono</option><option value="cute">Cute Pop</option><option value="hand">手書き・雑文字</option></select>
         </section>
-        <section><h2>プロフィール画像</h2>\n        <section className="about-tool"><h2><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9A9 9 0 0 0 12 3Zm0 4.1a1.2 1.2 0 1 1-1.2 1.2A1.2 1.2 0 0 1 12 7.1Zm1.5 10h-3v-1.5h.75v-4h-.75v-1.5h2.25v5.5h.75Z"/></svg>このツールについて</h2><p>Profile Bookは、SNSで使える横長のプロフィールカードを、プロフィール帳みたいに好きな項目だけ選んで作れるメーカーです。</p><ul><li>使いたい項目だけ追加・削除できます。</li><li>好きなものや独自項目は、必要な数だけ増やせます。</li><li>デザイン・カラー・フォント・画像を自由に組み合わせられます。</li><li>PNGには編集データを埋め込むので、あとから「PNGから復元」できます。</li></ul><p className="about-note">入力した内容はブラウザに自動保存されます。共有時はPNG画像をそのまま送れます。</p></section>\n
+        <section><h2>プロフィール画像</h2>
           <label className="upload-box">画像を選ぶ<input type="file" accept="image/*" onChange={handleImage}/></label>
           {avatarImage&&<button className="clear-image" onClick={()=>setAvatarImage("")}>画像を削除</button>}
           <p className="hint">正方形に近い画像がおすすめ。カードの丸いアイコンに入ります。</p>
         </section>
-        <section><h2>PNGから復元</h2><label className="upload-box restore-box">前回のPNGを読み込む<input type="file" accept="image/png" onChange={importPng}/></label><p className="hint">Profile Bookから書き出したPNGなら、入力内容・デザイン・画像まで復元できます。</p></section>
+        <section className="about-tool"><h2><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9A9 9 0 0 0 12 3Zm0 4.1a1.2 1.2 0 1 1-1.2 1.2A1.2 1.2 0 0 1 12 7.1Zm1.5 10h-3v-1.5h.75v-4h-.75v-1.5h2.25v5.5h.75Z"/></svg>このツールについて</h2><p>Profile Bookは、SNSで使える横長のプロフィールカードを、プロフィール帳みたいに好きな項目だけ選んで作れるメーカーです。</p><ul><li>使いたい項目だけ追加・削除できます。</li><li>好きなものや独自項目は、必要な数だけ増やせます。</li><li>デザイン・カラー・フォント・画像を自由に組み合わせられます。</li><li>PNGには編集データを埋め込むので、あとから「PNGから復元」できます。</li></ul><p className="about-note">入力した内容はブラウザに自動保存されます。共有時はPNG画像をそのまま送れます。</p></section>
       </aside>
       <section className="preview-area"><div className="preview-label"><span>LIVE PREVIEW</span><span>1200px × 可変高</span></div>
         <div className="card-wrap"><div ref={cardRef} className={"profile-card template-"+template} style={{"--bg":colors.bg,"--main":colors.main,"--accent":colors.accent,"--text":colors.text,"--sub":colors.sub,"--font":fontMap[font]} as CSSProperties}>
