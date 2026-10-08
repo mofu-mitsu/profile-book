@@ -100,8 +100,8 @@ export default function Home(){
     setProfile(x=>{
       const added={id,label,value:kind==="check"?"ON":kind==="stance"?"[]":"",kind};
       const next=[...x.items,added];
-      if(id!=="free"){const free=next.find(i=>i.id==="free");return free?next.filter(i=>i.id!=="free").concat(free):next}
-      return next;
+      if(id!=="free"){const free=next.find(i=>i.id==="free");return {...x,items:free?next.filter(i=>i.id!=="free").concat(free):next}}
+      return {...x,items:next};
     });
   };
   const addCustom=()=>{
