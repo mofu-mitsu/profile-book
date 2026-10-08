@@ -30,7 +30,7 @@ const fontMap:Record<FontKey,string> = {
 
 const stanceOptions = [
   ["follow","フォロー歓迎"],["followBack","フォロバOK"],["dm","DM OK"],
-  ["mutual","相互希望"],["silentFollow","無言フォローします"],["rt","RT歓迎"],["like","いいね歓迎"]
+  ["mutual","相互希望"],["silentFollow","無言フォローします"],["rt","RT歓迎"],["like","いいね歓迎"],["reply","リプ歓迎"],["casual","タメ口OK"],["nicknameOK","呼び捨てOK"]
 ] as const;
 
 function crc32(bytes:Uint8Array){
@@ -139,7 +139,7 @@ export default function Home(){
     alert("プロフィールを復元しました！");e.target.value="";
   };
 
-  useEffect(()=>{const host=document.getElementById("rakuten-widget-container");if(!host||host.dataset.loaded==="true")return;host.dataset.loaded="true";const w=window as unknown as Record<string,unknown>;Object.assign(w,{rakuten_design:"slide",rakuten_affiliateId:"47f67ba0.34b43d0d.47f67ba1.f8c0f51e",rakuten_items:"ctsmatch",rakuten_genreId:"0",rakuten_size:"468x160",rakuten_target:"_blank",rakuten_theme:"gray",rakuten_border:"off",rakuten_auto_mode:"on",rakuten_genre_title:"off",rakuten_recommend:"on",rakuten_ts:"1791439834451"});const script=document.createElement("script");script.type="text/javascript";script.src="https://xml.affiliate.rakuten.co.jp/widget/js/rakuten_widget.js?20230106";script.async=false;script.onload=()=>{if(!host.childElementCount)host.dataset.loaded="false"};script.onerror=()=>{host.dataset.loaded="false"};document.body.appendChild(script)},[]);
+
   return <main className="app">
     <nav className="breadcrumb"><a href="https://mofu-mitsu.github.io/">ホーム</a><span>＜</span><a href="https://mofu-mitsu.github.io/contents.html">コンテンツ一覧</a><span>＜</span><strong>Profile Book</strong></nav>
     <header className="topbar"><div><span className="eyebrow">SNS PROFILE MAKER</span><h1>Profile Book <small>プロフィール帳</small></h1><p>必要な項目だけ選んで、自分だけのプロフィールカードを作ろう。</p><button className="about-open" onClick={()=>setAboutOpen(true)}>ⓘ このツールについて</button></div><div className="top-actions"><button className="share" onClick={shareCard}>共有する ↗</button><button className="export" onClick={exportCard}>PNGを書き出す ↗</button></div></header>
@@ -184,7 +184,7 @@ export default function Home(){
           {avatarImage&&<button className="clear-image" onClick={()=>setAvatarImage("")}>画像を削除</button>}
           <p className="hint">正方形に近い画像がおすすめ。カードの丸いアイコンに入ります。</p>
         </section>
-        <section className="rakuten-widget"><div id="rakuten-widget-container"></div></section>
+        <section className="rakuten-widget"><h2>おすすめアイテム</h2><iframe title="楽天アフィリエイト" src="/rakuten-widget.html" width="468" height="180" loading="lazy" scrolling="no" /></section>
       </aside>
       <section className="preview-area"><div className="preview-label"><span>LIVE PREVIEW</span><span>1200px × 可変高</span></div>
         <div className="card-wrap"><div ref={cardRef} className={"profile-card template-"+template} style={{"--bg":colors.bg,"--main":colors.main,"--accent":colors.accent,"--text":colors.text,"--sub":colors.sub,"--font":fontMap[font]} as CSSProperties}>
