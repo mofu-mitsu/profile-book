@@ -90,6 +90,7 @@ export default function Home(){
   const [profile,setProfile]=useState<Profile>({name:"",username:"",intro:"",items:[]});
   const [customLabel,setCustomLabel]=useState("");
   const [customKind,setCustomKind]=useState<Kind>("text");
+  const [customDefs,setCustomDefs]=useState<CustomDef[]>([]);
   const cardRef=useRef<HTMLDivElement>(null);
   useEffect(()=>{const s=localStorage.getItem("profile-book-data");if(s){try{const x=JSON.parse(s);if(x.profile)setProfile(x.profile);if(x.customDefs)setCustomDefs(x.customDefs);if(x.avatarImage)setAvatarImage(x.avatarImage);if(x.colors)setColors(x.colors);if(x.template)setTemplate(x.template);if(x.font)setFont(x.font)}catch{}}},[]);
   useEffect(()=>{try{localStorage.setItem("profile-book-data",JSON.stringify({profile,customDefs,avatarImage,colors,template,font}))}catch{localStorage.removeItem("profile-book-data")}},[profile,customDefs,avatarImage,colors,template,font]);
@@ -121,7 +122,8 @@ export default function Home(){
     const next=current.includes(stanceId)?current.filter(x=>x!==stanceId):[...current,stanceId];
     updateItem(itemId,JSON.stringify(next));
   };
-  const removeItem=(id:string)=>setProfile(x=>({...x,items:x.items.filter(i=>i.id!==id)}));\n  const addDefinedCustom=(def:CustomDef)=>addItem(def.id,def.label,def.kind);
+  const removeItem=(id:string)=>setProfile(x=>({...x,items:x.items.filter(i=>i.id!==id)}));
+  const addDefinedCustom=(def:CustomDef)=>addItem(def.id,def.label,def.kind);
   const makePayload=()=>({version:1,profile,customDefs,avatarImage,colors,template,font});
   const makePng=async()=>{if(!cardRef.current)return null;const png=await toPng(cardRef.current,{pixelRatio:2,cacheBust:true});return withMetadata(png,makePayload())};
   const exportCard=async()=>{const url=await makePng();if(!url)return;const a=document.createElement("a");a.download="profile-book.png";a.href=url;a.click()};
