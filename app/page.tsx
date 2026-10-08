@@ -8,7 +8,7 @@ type Template = "book" | "minimal" | "pop" | "diary" | "holes" | "sticker" | "no
 type FontKey = "sans" | "rounded" | "serif" | "mono" | "cute" | "hand";
 type Kind = "text"|"long"|"check"|"chips"|"stance";
 type Item = { id:string; label:string; value:string; kind:Kind; custom?:boolean };
-type Profile = { name:string; username:string; intro:string; items:Item[] };
+type Profile = { name:string; username:string; intro:string; items:Item[] };\ntype CustomDef = { id:string; label:string; kind:Kind };
 
 const presets = {
   sakura:{bg:"#fff7fb",main:"#ff8fb3",accent:"#ffd5e2",text:"#4b3540",sub:"#fff0f5"},
@@ -90,8 +90,8 @@ export default function Home(){
   const [customLabel,setCustomLabel]=useState("");
   const [customKind,setCustomKind]=useState<Kind>("text");
   const cardRef=useRef<HTMLDivElement>(null);
-  useEffect(()=>{const s=localStorage.getItem("profile-book-data");if(s){try{const x=JSON.parse(s);if(x.profile)setProfile(x.profile);if(x.avatarImage)setAvatarImage(x.avatarImage);if(x.colors)setColors(x.colors);if(x.template)setTemplate(x.template);if(x.font)setFont(x.font)}catch{}}},[]);
-  useEffect(()=>{try{localStorage.setItem("profile-book-data",JSON.stringify({profile,avatarImage,colors,template,font}))}catch{localStorage.removeItem("profile-book-data")}},[profile,avatarImage,colors,template,font]);
+  useEffect(()=>{const s=localStorage.getItem("profile-book-data");if(s){try{const x=JSON.parse(s);if(x.profile)setProfile(x.profile);if(x.customDefs)setCustomDefs(x.customDefs);if(x.avatarImage)setAvatarImage(x.avatarImage);if(x.colors)setColors(x.colors);if(x.template)setTemplate(x.template);if(x.font)setFont(x.font)}catch{}}},[]);
+  useEffect(()=>{try{localStorage.setItem("profile-book-data",JSON.stringify({profile,customDefs,avatarImage,colors,template,font}))}catch{localStorage.removeItem("profile-book-data")}},[profile,customDefs,avatarImage,colors,template,font]);
   const selected=useMemo(()=>new Set(profile.items.map(x=>x.id)),[profile.items]);
   const update=(p:Partial<Profile>)=>setProfile(x=>({...x,...p}));
   const updateItem=(id:string,value:string)=>setProfile(x=>({...x,items:x.items.map(i=>i.id===id?{...i,value}:i)}));
@@ -120,8 +120,8 @@ export default function Home(){
     const next=current.includes(stanceId)?current.filter(x=>x!==stanceId):[...current,stanceId];
     updateItem(itemId,JSON.stringify(next));
   };
-  const removeItem=(id:string)=>setProfile(x=>({...x,items:x.items.filter(i=>i.id!==id)}));
-  const makePayload=()=>({version:1,profile,avatarImage,colors,template,font});
+  const removeItem=(id:string)=>setProfile(x=>({...x,items:x.items.filter(i=>i.id!==id)}));\n  const addDefinedCustom=(def:CustomDef)=>addItem(def.id,def.label,def.kind);
+  const makePayload=()=>({version:1,profile,customDefs,avatarImage,colors,template,font});
   const makePng=async()=>{if(!cardRef.current)return null;const png=await toPng(cardRef.current,{pixelRatio:2,cacheBust:true});return withMetadata(png,makePayload())};
   const exportCard=async()=>{const url=await makePng();if(!url)return;const a=document.createElement("a");a.download="profile-book.png";a.href=url;a.click()};
   const shareCard=async()=>{const url=await makePng();if(!url)return;try{const res=await fetch(url);const blob=await res.blob();const file=new File([blob],"profile-book.png",{type:"image/png"});if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){await navigator.share({title:"Profile Book",text:"SNSプロフィールカード",files:[file]});}else{await navigator.clipboard?.writeText(location.href);alert("共有リンクをコピーしました！");}}catch{}};
@@ -130,7 +130,7 @@ export default function Home(){
     const file=e.target.files?.[0];if(!file)return;
     const data=await readMetadata(file);
     if(!data?.profile){alert("Profile Bookで書き出したPNGではないようです。");return}
-    setProfile(data.profile);if(data.avatarImage)setAvatarImage(data.avatarImage);if(data.colors)setColors(data.colors);if(data.template)setTemplate(data.template);if(data.font)setFont(data.font);
+    setProfile(data.profile);if(data.customDefs)setCustomDefs(data.customDefs);if(data.avatarImage)setAvatarImage(data.avatarImage);if(data.colors)setColors(data.colors);if(data.template)setTemplate(data.template);if(data.font)setFont(data.font);
     alert("プロフィールを復元しました！");e.target.value="";
   };
 
@@ -139,13 +139,13 @@ export default function Home(){
     <header className="topbar"><div><span className="eyebrow">SNS PROFILE MAKER</span><h1>Profile Book <small>プロフィール帳</small></h1><p>必要な項目だけ選んで、自分だけのプロフィールカードを作ろう。</p></div><div className="top-actions"><button className="share" onClick={shareCard}>共有する ↗</button><button className="export" onClick={exportCard}>PNGを書き出す ↗</button></div></header>
     <div className="workspace">
       <aside className="panel">
-        <section><h2>基本情報</h2>
+        <section className="restore-section"><h2>PNGから復元</h2><label className="upload-box restore-box">前回のPNGを読み込む<input type="file" accept="image/png" onChange={importPng}/></label><p className="hint">Profile Bookから書き出したPNGなら、入力内容・デザイン・画像まで復元できます。</p></section>\n        <section><h2>基本情報</h2>
           <label>名前<input value={profile.name} onChange={e=>update({name:e.target.value})} placeholder="あなたの名前を入力してね"/></label>
           <label>ID<input value={profile.username} onChange={e=>update({username:e.target.value})} placeholder="@username など"/></label>
           <label>ひとこと<textarea rows={2} value={profile.intro} onChange={e=>update({intro:e.target.value})} placeholder="好きなことや一言をどうぞ…"/></label>
         </section>
         <section><div className="section-title"><h2>項目を追加</h2><span>{profile.items.length} selected</span></div>
-          <div className="option-grid">{itemOptions.map(([id,label,kind])=><button key={id} className={selected.has(id)?"option selected":"option"} onClick={()=>selected.has(id)?removeItem(id):addItem(id,label,kind as Item["kind"])}><span>{selected.has(id)?"✓":"+"}</span>{label}</button>)}</div>
+          <div className="option-grid">{itemOptions.map(([id,label,kind])=><button key={id} className={selected.has(id)?"option selected":"option"} onClick={()=>selected.has(id)?removeItem(id):addItem(id,label,kind as Item["kind"])}><span>{selected.has(id)?"✓":"+"}</span>{label}</button>)}{customDefs.map(def=><button key={def.id} className={selected.has(def.id)?"option selected":"option custom-option"} onClick={()=>selected.has(def.id)?removeItem(def.id):addDefinedCustom(def)}><span>{selected.has(def.id)?"✓":"+"}</span>{def.label}</button>)}</div>
           <div className="custom-add"><h3>独自項目</h3><div className="custom-row"><input value={customLabel} onChange={e=>setCustomLabel(e.target.value)} placeholder="項目名を入力"/><select value={customKind} onChange={e=>setCustomKind(e.target.value as Kind)}><option value="text">一行</option><option value="long">長文</option><option value="chips">複数項目</option></select></div><button className="add-custom" onClick={addCustom}>＋ 新たに項目を追加</button></div>
         </section>
         <section><div className="section-title"><h2>選択した項目</h2><span>↑↓で並べ替え</span></div>
@@ -160,7 +160,7 @@ export default function Home(){
             </div>:
              item.kind==="check"?<div className="check-row"><button className={item.value==="ON"?"toggle on":"toggle"} onClick={()=>updateItem(item.id,item.value==="ON"?"OFF":"ON")}>{item.value==="ON"?"ON":"OFF"}</button><span>ONならカードに表示</span></div>:
              item.kind==="chips"?<div className="favorite-editor">{(item.value?item.value.split("\n"):[""]).map((v,i)=>{const values=item.value?item.value.split("\n"):[""];return <div className="repeat-row" key={i}><input value={v} onChange={e=>{values[i]=e.target.value;updateItem(item.id,values.join("\n"))}} placeholder={`項目${i+1}`}/><button onClick={()=>{values.splice(i,1);updateItem(item.id,values.join("\n"))}}>×</button></div>})}<button className="add-row" onClick={()=>updateItem(item.id,item.value+(item.value?"\n":""))}>＋ 項目を増やす</button></div>:
-             item.kind==="long"?<textarea rows={4} value={item.value} onChange={e=>updateItem(item.id,e.target.value)} placeholder={item.label+"を入力…"} />:
+             item.kind==="long"?<textarea rows={item.value?4:2} value={item.value} onChange={e=>updateItem(item.id,e.target.value)} placeholder={item.label+"を入力…"} />:
              <input value={item.value} onChange={e=>updateItem(item.id,e.target.value)} placeholder={item.label+"を入力…"} />}
           </div>)}
         </section>
@@ -172,7 +172,7 @@ export default function Home(){
           <h3 className="subheading">フォント</h3>
           <select value={font} onChange={e=>setFont(e.target.value as FontKey)}><option value="sans">Clean Sans</option><option value="rounded">Rounded</option><option value="serif">Classic Serif</option><option value="mono">Mono</option><option value="cute">Cute Pop</option><option value="hand">手書き・雑文字</option></select>
         </section>
-        <section><h2>プロフィール画像</h2>
+        <section><h2>プロフィール画像</h2>\n        <section className="about-tool"><h2><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9A9 9 0 0 0 12 3Zm0 4.1a1.2 1.2 0 1 1-1.2 1.2A1.2 1.2 0 0 1 12 7.1Zm1.5 10h-3v-1.5h.75v-4h-.75v-1.5h2.25v5.5h.75Z"/></svg>このツールについて</h2><p>Profile Bookは、SNSで使える横長のプロフィールカードを、プロフィール帳みたいに好きな項目だけ選んで作れるメーカーです。</p><ul><li>使いたい項目だけ追加・削除できます。</li><li>好きなものや独自項目は、必要な数だけ増やせます。</li><li>デザイン・カラー・フォント・画像を自由に組み合わせられます。</li><li>PNGには編集データを埋め込むので、あとから「PNGから復元」できます。</li></ul><p className="about-note">入力した内容はブラウザに自動保存されます。共有時はPNG画像をそのまま送れます。</p></section>\n
           <label className="upload-box">画像を選ぶ<input type="file" accept="image/*" onChange={handleImage}/></label>
           {avatarImage&&<button className="clear-image" onClick={()=>setAvatarImage("")}>画像を削除</button>}
           <p className="hint">正方形に近い画像がおすすめ。カードの丸いアイコンに入ります。</p>
@@ -184,10 +184,10 @@ export default function Home(){
           <div className="card-deco">✦</div><div className="card-top"><div className="avatar">{avatarImage?<img src={avatarImage} alt="" />:<span>{profile.name.slice(0,1)||"♡"}</span>}</div>
           <div className="identity"><div className="name">{profile.name||"Your Name"}</div><div className="handle">{profile.username||"@username"}</div><div className="intro">{profile.intro}</div></div>
           <div className="book-mark">PROFILE<br/>BOOK</div></div>
-          <div className="items">{profile.items.map(item=><div className={"profile-item kind-"+item.kind} key={item.id}><div className="item-label">{item.label}</div>
+          <div className="items">{profile.items.map(item=><div className={"profile-item kind-"+item.kind+" "+((item.kind==="stance"?getStance(item.value).length:item.value.trim().length)>0?"has-value":"is-empty")} key={item.id}><div className="item-label">{item.label}</div>
             {item.kind==="stance"?<div className="stance-values">{getStance(item.value).map(id=>{const found=stanceOptions.find(x=>x[0]===id);return found?<span key={id}>✓ {found[1]}</span>:null})}{!getStance(item.value).length&&<span className="muted-value">—</span>}</div>:
              item.kind==="check"?<div className="check-value">{item.value==="ON"?"✓ OK":"—"}</div>:
-             item.kind==="chips"?<div className="chips">{item.value.split("/").map((x,i)=>x.trim()&&<span key={i}>{x.trim()}</span>)}</div>:
+             item.kind==="chips"?<div className="chips">{item.value.split("\n").map((x,i)=>x.trim()&&<span key={i}>{x.trim()}</span>)}</div>:
              <div className="item-value">{item.value||"—"}</div>}
           </div>)}</div>
           {!profile.items.length&&<div className="empty-card">左の「項目を追加」から<br/>好きなページを選んでね ♡</div>}
