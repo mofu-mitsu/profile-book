@@ -1,4 +1,4 @@
 import type { Metadata } from "next";
 import "./globals.css";
-export const metadata: Metadata = { title: "Profile Book — SNSプロフィールカードメーカー", description: "好きな項目だけ選んで作れるSNSプロフィール帳メーカー。" };
+export const metadata: Metadata = { title: "Profile Book — SNSプロフィールカードメーカー", description: "好きな項目だけ選んで作れるSNSプロフィール帳メーカー。デザインやカラーを自由に組み合わせて、プロフィールカードをPNGで保存できます。", openGraph: { title: "Profile Book — SNSプロフィールカードメーカー", description: "好きな項目だけ選んで、自分だけのプロフィール帳を作ろう。", images: [{ url: "/ogp.svg", width: 1200, height: 630, alt: "Profile Book SNSプロフィールカードメーカー" }] }, twitter: { card: "summary_large_image", title: "Profile Book — SNSプロフィールカードメーカー", description: "好きな項目だけ選んで、自分だけのプロフィール帳を作ろう。", images: ["/ogp.svg"] } };
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) { return <html lang="ja"><body>{children}</body></html>; }
