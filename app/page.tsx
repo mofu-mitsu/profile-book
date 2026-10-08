@@ -91,6 +91,7 @@ export default function Home(){
   const [customLabel,setCustomLabel]=useState("");
   const [customKind,setCustomKind]=useState<Kind>("text");
   const [customDefs,setCustomDefs]=useState<CustomDef[]>([]);
+  const [aboutOpen,setAboutOpen]=useState(false);
   const cardRef=useRef<HTMLDivElement>(null);
   useEffect(()=>{const s=localStorage.getItem("profile-book-data");if(s){try{const x=JSON.parse(s);if(x.profile)setProfile(x.profile);if(x.customDefs)setCustomDefs(x.customDefs);if(x.avatarImage)setAvatarImage(x.avatarImage);if(x.colors)setColors(x.colors);if(x.template)setTemplate(x.template);if(x.font)setFont(x.font)}catch{}}},[]);
   useEffect(()=>{try{localStorage.setItem("profile-book-data",JSON.stringify({profile,customDefs,avatarImage,colors,template,font}))}catch{localStorage.removeItem("profile-book-data")}},[profile,customDefs,avatarImage,colors,template,font]);
@@ -124,6 +125,7 @@ export default function Home(){
   };
   const removeItem=(id:string)=>setProfile(x=>({...x,items:x.items.filter(i=>i.id!==id)}));
   const addDefinedCustom=(def:CustomDef)=>addItem(def.id,def.label,def.kind);
+  const isTall=(item:Item)=>item.kind==="long" ? (item.value.split("\n").length>3 || item.value.length>110) : item.kind==="stance" ? getStance(item.value).length>4 : false;
   const makePayload=()=>({version:1,profile,customDefs,avatarImage,colors,template,font});
   const makePng=async()=>{if(!cardRef.current)return null;const png=await toPng(cardRef.current,{pixelRatio:2,cacheBust:true});return withMetadata(png,makePayload())};
   const exportCard=async()=>{const url=await makePng();if(!url)return;const a=document.createElement("a");a.download="profile-book.png";a.href=url;a.click()};
@@ -137,9 +139,10 @@ export default function Home(){
     alert("プロフィールを復元しました！");e.target.value="";
   };
 
+  useEffect(()=>{const host=document.getElementById("rakuten-widget-container");if(!host)return;host.innerHTML="";const a=document.createElement("script");a.type="text/javascript";a.textContent='rakuten_design="slide";rakuten_affiliateId="47f67ba0.34b43d0d.47c0f51e";rakuten_items="ctsmatch";rakuten_genreId="0";rakuten_size="468x160";rakuten_target="_blank";rakuten_theme="gray";rakuten_border="off";rakuten_auto_mode="on";rakuten_genre_title="off";rakuten_recommend="on";rakuten_ts="1791439834451";';const b=document.createElement("script");b.type="text/javascript";b.src="https://xml.affiliate.rakuten.co.jp/widget/js/rakuten_widget.js?20230106";host.append(a,b)},[]);
   return <main className="app">
     <nav className="breadcrumb"><a href="https://mofu-mitsu.github.io/">ホーム</a><span>＜</span><a href="https://mofu-mitsu.github.io/contents.html">コンテンツ一覧</a><span>＜</span><strong>Profile Book</strong></nav>
-    <header className="topbar"><div><span className="eyebrow">SNS PROFILE MAKER</span><h1>Profile Book <small>プロフィール帳</small></h1><p>必要な項目だけ選んで、自分だけのプロフィールカードを作ろう。</p></div><div className="top-actions"><button className="share" onClick={shareCard}>共有する ↗</button><button className="export" onClick={exportCard}>PNGを書き出す ↗</button></div></header>
+    <header className="topbar"><div><span className="eyebrow">SNS PROFILE MAKER</span><h1>Profile Book <small>プロフィール帳</small></h1><p>必要な項目だけ選んで、自分だけのプロフィールカードを作ろう。</p><button className="about-open" onClick={()=>setAboutOpen(true)}>ⓘ このツールについて</button></div><div className="top-actions"><button className="share" onClick={shareCard}>共有する ↗</button><button className="export" onClick={exportCard}>PNGを書き出す ↗</button></div></header>
     <div className="workspace">
       <aside className="panel">
         <section className="restore-section"><h2>PNGから復元</h2><label className="upload-box restore-box">前回のPNGを読み込む<input type="file" accept="image/png" onChange={importPng}/></label><p className="hint">Profile Bookから書き出したPNGなら、入力内容・デザイン・画像まで復元できます。</p></section>
@@ -181,14 +184,14 @@ export default function Home(){
           {avatarImage&&<button className="clear-image" onClick={()=>setAvatarImage("")}>画像を削除</button>}
           <p className="hint">正方形に近い画像がおすすめ。カードの丸いアイコンに入ります。</p>
         </section>
-        <section className="about-tool"><h2><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9A9 9 0 0 0 12 3Zm0 4.1a1.2 1.2 0 1 1-1.2 1.2A1.2 1.2 0 0 1 12 7.1Zm1.5 10h-3v-1.5h.75v-4h-.75v-1.5h2.25v5.5h.75Z"/></svg>このツールについて</h2><p>Profile Bookは、SNSで使える横長のプロフィールカードを、プロフィール帳みたいに好きな項目だけ選んで作れるメーカーです。</p><ul><li>使いたい項目だけ追加・削除できます。</li><li>好きなものや独自項目は、必要な数だけ増やせます。</li><li>デザイン・カラー・フォント・画像を自由に組み合わせられます。</li><li>PNGには編集データを埋め込むので、あとから「PNGから復元」できます。</li></ul><p className="about-note">入力した内容はブラウザに自動保存されます。共有時はPNG画像をそのまま送れます。</p></section>
+        <section className="rakuten-widget"><div id="rakuten-widget-container"></div></section>
       </aside>
       <section className="preview-area"><div className="preview-label"><span>LIVE PREVIEW</span><span>1200px × 可変高</span></div>
         <div className="card-wrap"><div ref={cardRef} className={"profile-card template-"+template} style={{"--bg":colors.bg,"--main":colors.main,"--accent":colors.accent,"--text":colors.text,"--sub":colors.sub,"--font":fontMap[font]} as CSSProperties}>
           <div className="card-deco">✦</div><div className="card-top"><div className="avatar">{avatarImage?<img src={avatarImage} alt="" />:<span>{profile.name.slice(0,1)||"♡"}</span>}</div>
           <div className="identity"><div className="name">{profile.name||"Your Name"}</div><div className="handle">{profile.username||"@username"}</div><div className="intro">{profile.intro}</div></div>
           <div className="book-mark">PROFILE<br/>BOOK</div></div>
-          <div className="items">{profile.items.map(item=><div className={"profile-item kind-"+item.kind+" "+((item.kind==="stance"?getStance(item.value).length:item.value.trim().length)>0?"has-value":"is-empty")} key={item.id}><div className="item-label">{item.label}</div>
+          <div className="items">{profile.items.map(item=><div className={"profile-item kind-"+item.kind+" "+((item.kind==="stance"?getStance(item.value).length:item.value.trim().length)>0?"has-value":"is-empty")+" "+(isTall(item)?"is-tall":"is-compact")} key={item.id}><div className="item-label">{item.label}</div>
             {item.kind==="stance"?<div className="stance-values">{getStance(item.value).map(id=>{const found=stanceOptions.find(x=>x[0]===id);return found?<span key={id}>✓ {found[1]}</span>:null})}{!getStance(item.value).length&&<span className="muted-value">—</span>}</div>:
              item.kind==="check"?<div className="check-value">{item.value==="ON"?"✓ OK":"—"}</div>:
              item.kind==="chips"?<div className="chips">{item.value.split("\n").map((x,i)=>x.trim()&&<span key={i}>{x.trim()}</span>)}</div>:
@@ -199,5 +202,13 @@ export default function Home(){
         </div></div>
       </section>
     </div>
+    {aboutOpen&&<div className="modal-backdrop" role="presentation" onClick={()=>setAboutOpen(false)}>
+      <div className="about-modal" role="dialog" aria-modal="true" aria-labelledby="about-title" onClick={e=>e.stopPropagation()}>
+        <button className="modal-close" onClick={()=>setAboutOpen(false)} aria-label="閉じる">×</button>
+        <h2 id="about-title"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9A9 9 0 0 0 12 3Zm0 4.1a1.2 1.2 0 1 1-1.2 1.2A1.2 1.2 0 0 1 12 7.1Zm1.5 10h-3v-1.5h.75v-4h-.75v-1.5h2.25v5.5h.75Z"/></svg>このツールについて</h2>
+        <p>Profile Bookは、SNSで使える横長のプロフィールカードを、プロフィール帳みたいに好きな項目だけ選んで作れるメーカーです。</p>
+        <ul><li>使いたい項目だけ追加・削除できます。</li><li>好きなものや独自項目は、必要な数だけ増やせます。</li><li>デザイン・カラー・フォント・画像を自由に組み合わせられます。</li><li>PNGには編集データを埋め込むので、あとから「PNGから復元」できます。</li></ul>
+        <p className="about-note">入力した内容はブラウザに自動保存されます。共有時はPNG画像をそのまま送れます。</p>
+      </div>
+    </div>}
   </main>
-}
