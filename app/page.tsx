@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { toPng } from "html-to-image";
+import Script from "next/script";
 
 type Template = "book" | "minimal" | "pop" | "diary" | "holes" | "sticker" | "notebook" | "scrap";
 type FontKey = "sans" | "rounded" | "serif" | "mono" | "cute" | "hand";
@@ -92,6 +93,7 @@ export default function Home(){
   const [customKind,setCustomKind]=useState<Kind>("text");
   const [customDefs,setCustomDefs]=useState<CustomDef[]>([]);
   const [aboutOpen,setAboutOpen]=useState(false);
+  const [mobileSaveUrl,setMobileSaveUrl]=useState<string>("");
   const cardRef=useRef<HTMLDivElement>(null);
   useEffect(()=>{const s=localStorage.getItem("profile-book-data");if(s){try{const x=JSON.parse(s);if(x.profile)setProfile(x.profile);if(x.customDefs)setCustomDefs(x.customDefs);if(x.avatarImage)setAvatarImage(x.avatarImage);if(x.colors)setColors(x.colors);if(x.template)setTemplate(x.template);if(x.font)setFont(x.font)}catch{}}},[]);
   useEffect(()=>{try{localStorage.setItem("profile-book-data",JSON.stringify({profile,customDefs,avatarImage,colors,template,font}))}catch{localStorage.removeItem("profile-book-data")}},[profile,customDefs,avatarImage,colors,template,font]);
@@ -128,8 +130,8 @@ export default function Home(){
   const isTall=(item:Item)=>item.kind==="long" ? (item.value.split("\n").length>3 || item.value.length>110) : item.kind==="stance" ? getStance(item.value).length>4 : false;
   const makePayload=()=>({version:1,profile,customDefs,avatarImage,colors,template,font});
   const makePng=async()=>{if(!cardRef.current)return null;const png=await toPng(cardRef.current,{pixelRatio:2,cacheBust:true});return withMetadata(png,makePayload())};
-  const exportCard=async()=>{const url=await makePng();if(!url)return;const a=document.createElement("a");a.download="profile-book.png";a.href=url;a.click()};
-  const shareCard=async()=>{const url=await makePng();if(!url)return;try{const res=await fetch(url);const blob=await res.blob();const file=new File([blob],"profile-book.png",{type:"image/png"});if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){await navigator.share({title:"Profile Book",text:"SNSプロフィールカード",files:[file]});}else{await navigator.clipboard?.writeText(location.href);alert("共有リンクをコピーしました！");}}catch{}};
+  const exportCard=async()=>{const url=await makePng();if(!url)return;const mobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);if(mobile){setMobileSaveUrl(url);return;}const a=document.createElement("a");a.download="profile-book.png";a.href=url;a.click()};
+  const shareCard=async()=>{const url=await makePng();if(!url)return;try{const res=await fetch(url);const blob=await res.blob();const file=new File([blob],"profile-book.png",{type:"image/png"});if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){await navigator.share({title:"SNSプロフィールカードを作成しました！｜Profile Book",text:"プロフィールカードを作成したよ！\n#プロフィールブック #プロフィールカード #ProfileBook",files:[file]});}else{await navigator.clipboard?.writeText("プロフィールカードを作成したよ！\n"+location.href+"\n#プロフィールブック #プロフィールカード #ProfileBook");alert("共有文とリンクをコピーしました！");}}catch{}};
   const handleImage=(e:React.ChangeEvent<HTMLInputElement>)=>{const file=e.target.files?.[0];if(!file)return;if(!file.type.startsWith("image/"))return;const reader=new FileReader();reader.onload=()=>setAvatarImage(String(reader.result));reader.readAsDataURL(file)};
   const importPng=async(e:React.ChangeEvent<HTMLInputElement>)=>{
     const file=e.target.files?.[0];if(!file)return;
@@ -141,6 +143,8 @@ export default function Home(){
 
 
   return <main className="app">
+    <Script src="https://www.googletagmanager.com/gtag/js?id=G-GNTX973GET" strategy="afterInteractive" />
+    <Script id="google-analytics" strategy="afterInteractive">{`window.dataLayer = window.dataLayer || []; function gtag(){window.dataLayer.push(arguments);} gtag("js", new Date()); gtag("config", "G-GNTX973GET");`}</Script>
     <nav className="breadcrumb"><a href="https://mofu-mitsu.github.io/">ホーム</a><span>＜</span><a href="https://mofu-mitsu.github.io/contents.html">コンテンツ一覧</a><span>＜</span><strong>Profile Book</strong></nav>
     <header className="topbar"><div><span className="eyebrow">SNS PROFILE MAKER</span><h1>Profile Book <small>プロフィール帳</small></h1><p>必要な項目だけ選んで、自分だけのプロフィールカードを作ろう。</p><button className="about-open" onClick={()=>setAboutOpen(true)}>ⓘ このツールについて</button></div><div className="top-actions"><button className="share" onClick={shareCard}>共有する ↗</button><button className="export" onClick={exportCard}>PNGを書き出す ↗</button></div></header>
     <div className="workspace">
@@ -202,6 +206,16 @@ export default function Home(){
         </div></div>
       </section>
     </div>
+    {mobileSaveUrl&&<div className="modal-backdrop save-backdrop" role="presentation" onClick={()=>setMobileSaveUrl("")}>
+      <div className="about-modal save-modal" role="dialog" aria-modal="true" aria-labelledby="save-title" onClick={e=>e.stopPropagation()}>
+        <button className="modal-close" onClick={()=>setMobileSaveUrl("")} aria-label="閉じる">×</button>
+        <h2 id="save-title">画像を長押しして保存してね ♡</h2>
+        <p>下のプロフィール画像を長押しして、「写真に保存」または「画像を保存」を選んでね。</p>
+        <div className="save-image-scroll"><img src={mobileSaveUrl} alt="作成したプロフィールカード。画像を長押しして保存できます。" /></div>
+        <p className="about-note">画像が大きいときは、枠の中をスクロールして確認できます。</p>
+        <button className="save-close-button" onClick={()=>setMobileSaveUrl("")}>閉じる</button>
+      </div>
+    </div>}
     {aboutOpen&&<div className="modal-backdrop" role="presentation" onClick={()=>setAboutOpen(false)}>
       <div className="about-modal" role="dialog" aria-modal="true" aria-labelledby="about-title" onClick={e=>e.stopPropagation()}>
         <button className="modal-close" onClick={()=>setAboutOpen(false)} aria-label="閉じる">×</button>
