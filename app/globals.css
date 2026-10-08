@@ -40,3 +40,6 @@
   .profile-item.is-free{width:calc(100% + 52px);margin-left:-26px;margin-right:-26px;padding-left:26px;padding-right:26px}
   .template-holes .profile-item.is-free{width:calc(100% + 84px);margin-left:-58px;margin-right:-26px;padding-left:58px;padding-right:26px}
 }
+
+/* The free-space item must override the compact/tall long-text grid rules */
+.profile-item.kind-long.is-free{grid-column:1/-1}
