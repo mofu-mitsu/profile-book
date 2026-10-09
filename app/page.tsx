@@ -96,8 +96,9 @@ export default function Home(){
   const [aboutOpen,setAboutOpen]=useState(false);
   const [mobileSaveUrl,setMobileSaveUrl]=useState<string>("");
   const cardRef=useRef<HTMLDivElement>(null);
-  useEffect(()=>{const s=localStorage.getItem("profile-book-data");if(s){try{const x=JSON.parse(s);if(x.profile)setProfile(x.profile);if(x.customDefs)setCustomDefs(x.customDefs);if(x.avatarImage)setAvatarImage(x.avatarImage);if(x.avatarFileName)setAvatarFileName(x.avatarFileName);if(x.colors)setColors(x.colors);if(x.template)setTemplate(x.template);if(x.font)setFont(x.font)}catch{}}},[]);
-  useEffect(()=>{try{localStorage.setItem("profile-book-data",JSON.stringify({profile,customDefs,avatarImage,avatarFileName,colors,template,font}))}catch{localStorage.removeItem("profile-book-data")}},[profile,customDefs,avatarImage,colors,template,font]);
+  useEffect(()=>{const s=localStorage.getItem("profile-book-data");const savedAvatar=sessionStorage.getItem("profile-book-avatar");if(savedAvatar)setAvatarImage(savedAvatar);if(s){try{const x=JSON.parse(s);if(x.profile)setProfile(x.profile);if(x.customDefs)setCustomDefs(x.customDefs);if(x.avatarImage)setAvatarImage(x.avatarImage);if(x.avatarFileName)setAvatarFileName(x.avatarFileName);if(x.colors)setColors(x.colors);if(x.template)setTemplate(x.template);if(x.font)setFont(x.font)}catch{}}},[]);
+  useEffect(()=>{try{localStorage.setItem("profile-book-data",JSON.stringify({profile,customDefs,avatarFileName,colors,template,font}))}catch{}},[profile,customDefs,avatarFileName,colors,template,font]);
+  useEffect(()=>{try{if(avatarImage){sessionStorage.setItem("profile-book-avatar",avatarImage)}else{sessionStorage.removeItem("profile-book-avatar")}}catch{}},[avatarImage]);
   const selected=useMemo(()=>new Set(profile.items.map(x=>x.id)),[profile.items]);
   const update=(p:Partial<Profile>)=>setProfile(x=>({...x,...p}));
   const updateItem=(id:string,value:string)=>setProfile(x=>({...x,items:x.items.map(i=>i.id===id?{...i,value}:i)}));
