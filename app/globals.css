@@ -61,3 +61,9 @@
 .save-image-scroll{overflow:auto;min-height:120px;max-height:48dvh;border:1px solid #eadce5;border-radius:12px;background:#f8f4f8;padding:8px;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .save-image-scroll img{display:block;width:100%;height:auto;object-fit:contain;user-select:auto;-webkit-user-select:auto;-webkit-touch-callout:default}
 .save-close-button{flex:none;border:0;border-radius:999px;background:#8f5877;color:white;padding:11px 20px;font-weight:700}
+
+/* Uploaded profile image confirmation */
+.uploaded-image-info{display:flex;align-items:center;gap:8px;margin:9px 0 2px;padding:9px 10px;border:1px solid #e7d4e0;border-radius:10px;background:#fff8fc;min-width:0}
+.uploaded-image-check{display:grid;place-items:center;flex:none;width:20px;height:20px;border-radius:50%;background:#e6f6ec;color:#39845a;font-size:12px;font-weight:900}
+.uploaded-image-name{flex:1;min-width:0;overflow-wrap:anywhere;font-size:11px;color:#695566;line-height:1.4}
+.uploaded-image-info .clear-image{flex:none;margin:0;padding:5px 2px}
