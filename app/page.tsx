@@ -34,6 +34,16 @@ const stanceOptions = [
   ["mutual","相互希望"],["silentFollow","無言フォローします"],["rt","RT歓迎"],["like","いいね歓迎"],["reply","リプ歓迎"],["casual","タメ口OK"],["nicknameOK","呼び捨てOK"]
 ] as const;
 
+async function persistAvatar(image:string){
+  if(typeof indexedDB==="undefined")return;
+  const db=await new Promise<IDBDatabase>((resolve,reject)=>{const r=indexedDB.open("profile-book",1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains("assets"))r.result.createObjectStore("assets")};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+  await new Promise<void>((resolve,reject)=>{const tx=db.transaction("assets","readwrite");const store=tx.objectStore("assets");if(image)store.put(image,"avatar");else store.delete("avatar");tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error)});db.close();
+}
+async function restoreAvatar(){
+  if(typeof indexedDB==="undefined")return "";
+  const db=await new Promise<IDBDatabase>((resolve,reject)=>{const r=indexedDB.open("profile-book",1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains("assets"))r.result.createObjectStore("assets")};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+  const image=await new Promise<string>((resolve,reject)=>{const r=db.transaction("assets","readonly").objectStore("assets").get("avatar");r.onsuccess=()=>resolve(typeof r.result==="string"?r.result:"");r.onerror=()=>reject(r.error)});db.close();return image;
+}
 function crc32(bytes:Uint8Array){
   let c=0xffffffff;
   for(const b of bytes){c^=b;for(let k=0;k<8;k++)c=(c>>>1)^((c&1)?0xedb88320:0);}
@@ -96,9 +106,9 @@ export default function Home(){
   const [aboutOpen,setAboutOpen]=useState(false);
   const [mobileSaveUrl,setMobileSaveUrl]=useState<string>("");
   const cardRef=useRef<HTMLDivElement>(null);
-  useEffect(()=>{const s=localStorage.getItem("profile-book-data");const savedAvatar=sessionStorage.getItem("profile-book-avatar");if(savedAvatar)setAvatarImage(savedAvatar);if(s){try{const x=JSON.parse(s);if(x.profile)setProfile(x.profile);if(x.customDefs)setCustomDefs(x.customDefs);if(x.avatarImage)setAvatarImage(x.avatarImage);if(x.avatarFileName)setAvatarFileName(x.avatarFileName);if(x.colors)setColors(x.colors);if(x.template)setTemplate(x.template);if(x.font)setFont(x.font)}catch{}}},[]);
+  useEffect(()=>{let active=true;void restoreAvatar().then(image=>{if(active&&image)setAvatarImage(image)}).catch(()=>{});const s=localStorage.getItem("profile-book-data");const savedAvatar=sessionStorage.getItem("profile-book-avatar");if(savedAvatar)setAvatarImage(savedAvatar);if(s){try{const x=JSON.parse(s);if(x.profile)setProfile(x.profile);if(x.customDefs)setCustomDefs(x.customDefs);if(x.avatarImage)setAvatarImage(x.avatarImage);if(x.avatarFileName)setAvatarFileName(x.avatarFileName);if(x.colors)setColors(x.colors);if(x.template)setTemplate(x.template);if(x.font)setFont(x.font)}catch{}}return()=>{active=false}},[]);
   useEffect(()=>{try{localStorage.setItem("profile-book-data",JSON.stringify({profile,customDefs,avatarFileName,colors,template,font}))}catch{}},[profile,customDefs,avatarFileName,colors,template,font]);
-  useEffect(()=>{try{if(avatarImage){sessionStorage.setItem("profile-book-avatar",avatarImage)}else{sessionStorage.removeItem("profile-book-avatar")}}catch{}},[avatarImage]);
+  useEffect(()=>{void persistAvatar(avatarImage).catch(()=>{});try{if(avatarImage)sessionStorage.setItem("profile-book-avatar",avatarImage);else sessionStorage.removeItem("profile-book-avatar")}catch{}},[avatarImage]);
   const selected=useMemo(()=>new Set(profile.items.map(x=>x.id)),[profile.items]);
   const update=(p:Partial<Profile>)=>setProfile(x=>({...x,...p}));
   const updateItem=(id:string,value:string)=>setProfile(x=>({...x,items:x.items.map(i=>i.id===id?{...i,value}:i)}));
