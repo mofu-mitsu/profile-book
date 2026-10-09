@@ -88,6 +88,7 @@ export default function Home(){
   const [font,setFont]=useState<FontKey>("rounded");
   const [colors,setColors]=useState(presets.sakura);
   const [avatarImage,setAvatarImage]=useState<string>("");
+  const [avatarFileName,setAvatarFileName]=useState<string>("");
   const [profile,setProfile]=useState<Profile>({name:"",username:"",intro:"",items:[]});
   const [customLabel,setCustomLabel]=useState("");
   const [customKind,setCustomKind]=useState<Kind>("text");
@@ -95,8 +96,8 @@ export default function Home(){
   const [aboutOpen,setAboutOpen]=useState(false);
   const [mobileSaveUrl,setMobileSaveUrl]=useState<string>("");
   const cardRef=useRef<HTMLDivElement>(null);
-  useEffect(()=>{const s=localStorage.getItem("profile-book-data");if(s){try{const x=JSON.parse(s);if(x.profile)setProfile(x.profile);if(x.customDefs)setCustomDefs(x.customDefs);if(x.avatarImage)setAvatarImage(x.avatarImage);if(x.colors)setColors(x.colors);if(x.template)setTemplate(x.template);if(x.font)setFont(x.font)}catch{}}},[]);
-  useEffect(()=>{try{localStorage.setItem("profile-book-data",JSON.stringify({profile,customDefs,avatarImage,colors,template,font}))}catch{localStorage.removeItem("profile-book-data")}},[profile,customDefs,avatarImage,colors,template,font]);
+  useEffect(()=>{const s=localStorage.getItem("profile-book-data");if(s){try{const x=JSON.parse(s);if(x.profile)setProfile(x.profile);if(x.customDefs)setCustomDefs(x.customDefs);if(x.avatarImage)setAvatarImage(x.avatarImage);if(x.avatarFileName)setAvatarFileName(x.avatarFileName);if(x.colors)setColors(x.colors);if(x.template)setTemplate(x.template);if(x.font)setFont(x.font)}catch{}}},[]);
+  useEffect(()=>{try{localStorage.setItem("profile-book-data",JSON.stringify({profile,customDefs,avatarImage,avatarFileName,colors,template,font}))}catch{localStorage.removeItem("profile-book-data")}},[profile,customDefs,avatarImage,colors,template,font]);
   const selected=useMemo(()=>new Set(profile.items.map(x=>x.id)),[profile.items]);
   const update=(p:Partial<Profile>)=>setProfile(x=>({...x,...p}));
   const updateItem=(id:string,value:string)=>setProfile(x=>({...x,items:x.items.map(i=>i.id===id?{...i,value}:i)}));
@@ -128,16 +129,16 @@ export default function Home(){
   const removeItem=(id:string)=>setProfile(x=>({...x,items:x.items.filter(i=>i.id!==id)}));
   const addDefinedCustom=(def:CustomDef)=>addItem(def.id,def.label,def.kind);
   const isTall=(item:Item)=>item.kind==="long" ? (item.value.split("\n").length>3 || item.value.length>110) : item.kind==="stance" ? getStance(item.value).length>4 : false;
-  const makePayload=()=>({version:1,profile,customDefs,avatarImage,colors,template,font});
+  const makePayload=()=>({version:1,profile,customDefs,avatarImage,avatarFileName,colors,template,font});
   const makePng=async()=>{if(!cardRef.current)return null;const png=await toPng(cardRef.current,{pixelRatio:2,cacheBust:true});return withMetadata(png,makePayload())};
   const exportCard=async()=>{const url=await makePng();if(!url)return;const mobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);if(mobile){setMobileSaveUrl(url);return;}const a=document.createElement("a");a.download="profile-book.png";a.href=url;a.click()};
   const shareCard=async()=>{const url=await makePng();if(!url)return;try{const res=await fetch(url);const blob=await res.blob();const file=new File([blob],"profile-book.png",{type:"image/png"});if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){await navigator.share({title:"SNSプロフィールカードを作成しました！｜Profile Book",text:"プロフィールカードを作成したよ！\n#プロフィールブック #プロフィールカード #ProfileBook",files:[file]});}else{await navigator.clipboard?.writeText("プロフィールカードを作成したよ！\n"+location.href+"\n#プロフィールブック #プロフィールカード #ProfileBook");alert("共有文とリンクをコピーしました！");}}catch{}};
-  const handleImage=(e:React.ChangeEvent<HTMLInputElement>)=>{const file=e.target.files?.[0];if(!file)return;if(!file.type.startsWith("image/"))return;const reader=new FileReader();reader.onload=()=>setAvatarImage(String(reader.result));reader.readAsDataURL(file)};
+  const handleImage=(e:React.ChangeEvent<HTMLInputElement>)=>{const file=e.target.files?.[0];if(!file)return;if(!file.type.startsWith("image/"))return;const reader=new FileReader();reader.onload=()=>{setAvatarImage(String(reader.result));setAvatarFileName(file.name)};reader.readAsDataURL(file)};
   const importPng=async(e:React.ChangeEvent<HTMLInputElement>)=>{
     const file=e.target.files?.[0];if(!file)return;
     const data=await readMetadata(file);
     if(!data?.profile){alert("Profile Bookで書き出したPNGではないようです。");return}
-    setProfile(data.profile);if(data.customDefs)setCustomDefs(data.customDefs);if(data.avatarImage)setAvatarImage(data.avatarImage);if(data.colors)setColors(data.colors);if(data.template)setTemplate(data.template);if(data.font)setFont(data.font);
+    setProfile(data.profile);if(data.customDefs)setCustomDefs(data.customDefs);if(data.avatarImage)setAvatarImage(data.avatarImage);if(data.avatarFileName)setAvatarFileName(data.avatarFileName);if(data.colors)setColors(data.colors);if(data.template)setTemplate(data.template);if(data.font)setFont(data.font);
     alert("プロフィールを復元しました！");e.target.value="";
   };
 
@@ -160,7 +161,7 @@ export default function Home(){
           <div className="custom-add"><h3>独自項目</h3><div className="custom-row"><input value={customLabel} onChange={e=>setCustomLabel(e.target.value)} placeholder="項目名を入力"/><select value={customKind} onChange={e=>setCustomKind(e.target.value as Kind)}><option value="text">一行</option><option value="long">長文</option><option value="chips">複数項目</option></select></div><button className="add-custom" onClick={addCustom}>＋ 新たに項目を追加</button></div>
         </section>
         <section><div className="section-title"><h2>選択した項目</h2><span>↑↓で並べ替え</span></div>
-          {!profile.items.length&&<p className="hint">上から好きな項目を選んでね。</p>}
+          {!profile.items.length&&<p className="hint">下の「項目を追加」から好きな項目を選んでね。</p>}
           {profile.items.map((item,index)=><div className="item-editor" key={item.id}>
             <div className="item-head"><strong>{item.label}</strong><div className="item-actions"><button disabled={index===0} onClick={()=>moveItem(index,-1)}>↑</button><button disabled={index===profile.items.length-1} onClick={()=>moveItem(index,1)}>↓</button><button className="delete" onClick={()=>removeItem(item.id)}>削除</button></div></div>
             {item.kind==="stance"?<div className="stance-checks">
@@ -184,8 +185,8 @@ export default function Home(){
           <select value={font} onChange={e=>setFont(e.target.value as FontKey)}><option value="sans">Clean Sans</option><option value="rounded">Rounded</option><option value="serif">Classic Serif</option><option value="mono">Mono</option><option value="cute">Cute Pop</option><option value="hand">手書き・雑文字</option></select>
         </section>
         <section><h2>プロフィール画像</h2>
-          <label className="upload-box">画像を選ぶ<input type="file" accept="image/*" onChange={handleImage}/></label>
-          {avatarImage&&<button className="clear-image" onClick={()=>setAvatarImage("")}>画像を削除</button>}
+          <label className="upload-box">{avatarImage ? "画像を変更する" : "画像を選ぶ"}<input type="file" accept="image/*" onChange={handleImage}/></label>
+          {avatarImage&&<div className="uploaded-image-info"><span className="uploaded-image-check">✓</span><span className="uploaded-image-name" title={avatarFileName}>{avatarFileName || "画像を読み込み済み"}</span><button className="clear-image" onClick={()=>{setAvatarImage("");setAvatarFileName("")}}>削除</button></div>}
           <p className="hint">正方形に近い画像がおすすめ。カードの丸いアイコンに入ります。</p>
         </section>
         <section className="rakuten-widget"><h2>おすすめアイテム</h2><iframe title="楽天アフィリエイト" src="/rakuten-widget.html" width="468" height="180" loading="lazy" scrolling="no" /></section>
