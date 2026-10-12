@@ -141,7 +141,7 @@ export default function Home(){
   const addDefinedCustom=(def:CustomDef)=>addItem(def.id,def.label,def.kind);
   const isTall=(item:Item)=>item.kind==="long" ? (item.value.split("\n").length>3 || item.value.length>110) : item.kind==="stance" ? getStance(item.value).length>4 : false;
   const makePayload=()=>({version:1,profile,customDefs,avatarImage,avatarFileName,colors,template,font});
-  const makePng=async()=>{if(!cardRef.current)return null;const png=await toPng(cardRef.current,{pixelRatio:2,cacheBust:true});return withMetadata(png,makePayload())};
+  const makePng=async()=>{if(!cardRef.current)return null;const images=Array.from(cardRef.current.querySelectorAll("img"));await Promise.all(images.map(async img=>{if(img.complete&&img.naturalWidth>0)return;try{await img.decode()}catch{await new Promise<void>(resolve=>{img.onload=()=>resolve();img.onerror=()=>resolve()})}}));const png=await toPng(cardRef.current,{pixelRatio:2,cacheBust:true,skipAutoScale:false});return withMetadata(png,makePayload())};
   const exportCard=async()=>{const url=await makePng();if(!url)return;const mobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);if(mobile){setMobileSaveUrl(url);return;}const a=document.createElement("a");a.download="profile-book.png";a.href=url;a.click()};
   const shareCard=async()=>{const url=await makePng();if(!url)return;try{const res=await fetch(url);const blob=await res.blob();const file=new File([blob],"profile-book.png",{type:"image/png"});if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){await navigator.share({title:"SNSプロフィールカードを作成しました！｜Profile Book",text:"プロフィールカードを作成したよ！\n#プロフィールブック #プロフィールカード #ProfileBook",files:[file]});}else{await navigator.clipboard?.writeText("プロフィールカードを作成したよ！\n"+location.href+"\n#プロフィールブック #プロフィールカード #ProfileBook");alert("共有文とリンクをコピーしました！");}}catch{}};
   const handleImage=(e:React.ChangeEvent<HTMLInputElement>)=>{const file=e.target.files?.[0];if(!file)return;if(!file.type.startsWith("image/"))return;const reader=new FileReader();reader.onload=()=>{setAvatarImage(String(reader.result));setAvatarFileName(file.name)};reader.readAsDataURL(file)};
@@ -213,7 +213,7 @@ export default function Home(){
              item.kind==="chips"?<div className="chips">{item.value.split("\n").map((x,i)=>x.trim()&&<span key={i}>{x.trim()}</span>)}</div>:
              <div className="item-value">{item.value||"—"}</div>}
           </div>)}</div>
-          {!profile.items.length&&<div className="empty-card">左の「項目を追加」から<br/>好きなページを選んでね ♡</div>}
+          {!profile.items.length&&<div className="empty-card">「項目を追加」から<br/>好きな項目を選んでね ♡</div>}
           <div className="card-footer"><span>♡ let’s be friends!</span><span>profile-book</span></div>
         </div></div>
       </section>
