@@ -161,10 +161,30 @@ export default function Home(){
       const cloneImages=Array.from(clone.querySelectorAll("img"));
       await Promise.all(cloneImages.map(async(img,index)=>{
         const original=sourceImages[index];
-        if(original?.src)img.src=original.src;
-        if(img.complete&&img.naturalWidth>0)return;
-        await new Promise<void>(resolve=>{img.onload=()=>resolve();img.onerror=()=>resolve();if(img.complete)resolve()});
+        if(original){
+          img.removeAttribute("srcset");
+          img.src=original.currentSrc||original.src;
+          img.crossOrigin=original.crossOrigin;
+          img.alt=original.alt;
+        }
+        try{
+          if(typeof img.decode==="function")await img.decode();
+          else if(!img.complete||img.naturalWidth===0)await new Promise<void>(resolve=>{img.onload=()=>resolve();img.onerror=()=>resolve()});
+        }catch{}
       }));
+      // Ensure the avatar is present in the export DOM even on Safari, where cloneNode can lose image decode state.
+      const sourceAvatar=source.querySelector(".avatar img") as HTMLImageElement|null;
+      const cloneAvatar=clone.querySelector(".avatar") as HTMLDivElement|null;
+      if(sourceAvatar&&cloneAvatar){
+        const avatar=sourceAvatar.cloneNode(true) as HTMLImageElement;
+        avatar.removeAttribute("srcset");
+        avatar.src=sourceAvatar.currentSrc||sourceAvatar.src;
+        avatar.style.width="100%";
+        avatar.style.height="100%";
+        avatar.style.objectFit="cover";
+        cloneAvatar.replaceChildren(avatar);
+        try{if(typeof avatar.decode==="function")await avatar.decode()}catch{}
+      }
       const png=await toPng(clone,{pixelRatio:2,skipAutoScale:false,width:1200,height:clone.scrollHeight,style:{left:"0",top:"0",transform:"none"}});
       return withMetadata(png,makePayload());
     }finally{clone.remove()}
