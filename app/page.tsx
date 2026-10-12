@@ -141,7 +141,33 @@ export default function Home(){
   const addDefinedCustom=(def:CustomDef)=>addItem(def.id,def.label,def.kind);
   const isTall=(item:Item)=>item.kind==="long" ? (item.value.split("\n").length>3 || item.value.length>110) : item.kind==="stance" ? getStance(item.value).length>4 : false;
   const makePayload=()=>({version:1,profile,customDefs,avatarImage,avatarFileName,colors,template,font});
-  const makePng=async()=>{if(!cardRef.current)return null;const images=Array.from(cardRef.current.querySelectorAll("img"));await Promise.all(images.map(async img=>{if(img.complete&&img.naturalWidth>0)return;try{await img.decode()}catch{await new Promise<void>(resolve=>{img.onload=()=>resolve();img.onerror=()=>resolve()})}}));const png=await toPng(cardRef.current,{pixelRatio:2,cacheBust:true,skipAutoScale:false});return withMetadata(png,makePayload())};
+  const makePng=async()=>{
+    if(!cardRef.current)return null;
+    // Capture a desktop-sized clone so mobile previews export at the same 1200px layout.
+    const source=cardRef.current;
+    const clone=source.cloneNode(true) as HTMLDivElement;
+    clone.style.width="1200px";
+    clone.style.minWidth="1200px";
+    clone.style.maxWidth="1200px";
+    clone.style.position="fixed";
+    clone.style.left="-20000px";
+    clone.style.top="0";
+    clone.style.zIndex="-1";
+    clone.style.overflow="visible";
+    document.body.appendChild(clone);
+    try{
+      const sourceImages=Array.from(source.querySelectorAll("img"));
+      const cloneImages=Array.from(clone.querySelectorAll("img"));
+      await Promise.all(cloneImages.map(async(img,index)=>{
+        const original=sourceImages[index];
+        if(original?.src)img.src=original.src;
+        if(img.complete&&img.naturalWidth>0)return;
+        await new Promise<void>(resolve=>{img.onload=()=>resolve();img.onerror=()=>resolve();if(img.complete)resolve()});
+      }));
+      const png=await toPng(clone,{pixelRatio:2,skipAutoScale:false});
+      return withMetadata(png,makePayload());
+    }finally{clone.remove()}
+  };
   const exportCard=async()=>{const url=await makePng();if(!url)return;const mobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);if(mobile){setMobileSaveUrl(url);return;}const a=document.createElement("a");a.download="profile-book.png";a.href=url;a.click()};
   const shareCard=async()=>{const url=await makePng();if(!url)return;try{const res=await fetch(url);const blob=await res.blob();const file=new File([blob],"profile-book.png",{type:"image/png"});if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){await navigator.share({title:"SNSプロフィールカードを作成しました！｜Profile Book",text:"プロフィールカードを作成したよ！\n#プロフィールブック #プロフィールカード #ProfileBook",files:[file]});}else{await navigator.clipboard?.writeText("プロフィールカードを作成したよ！\n"+location.href+"\n#プロフィールブック #プロフィールカード #ProfileBook");alert("共有文とリンクをコピーしました！");}}catch{}};
   const handleImage=(e:React.ChangeEvent<HTMLInputElement>)=>{const file=e.target.files?.[0];if(!file)return;if(!file.type.startsWith("image/"))return;const reader=new FileReader();reader.onload=()=>{setAvatarImage(String(reader.result));setAvatarFileName(file.name)};reader.readAsDataURL(file)};
