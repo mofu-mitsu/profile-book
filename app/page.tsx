@@ -143,7 +143,6 @@ export default function Home(){
   const makePayload=()=>({version:1,profile,customDefs,avatarImage,avatarFileName,colors,template,font});
   const makePng=async()=>{
     if(!cardRef.current)return null;
-    // Render the export clone in the document viewport; negative off-screen coordinates can yield a blank canvas on mobile Safari.
     const source=cardRef.current;
     const clone=source.cloneNode(true) as HTMLDivElement;
     clone.style.width="1200px";
@@ -157,36 +156,51 @@ export default function Home(){
     clone.style.overflow="visible";
     document.body.appendChild(clone);
     try{
-      const sourceImages=Array.from(source.querySelectorAll("img"));
-      const cloneImages=Array.from(clone.querySelectorAll("img"));
-      await Promise.all(cloneImages.map(async(img,index)=>{
-        const original=sourceImages[index];
-        if(original){
-          img.removeAttribute("srcset");
-          img.src=original.currentSrc||original.src;
-          img.crossOrigin=original.crossOrigin;
-          img.alt=original.alt;
-        }
-        try{
-          if(typeof img.decode==="function")await img.decode();
-          else if(!img.complete||img.naturalWidth===0)await new Promise<void>(resolve=>{img.onload=()=>resolve();img.onerror=()=>resolve()});
-        }catch{}
-      }));
-      // Ensure the avatar is present in the export DOM even on Safari, where cloneNode can lose image decode state.
+      const sourceRect=source.getBoundingClientRect();
+      const cloneRect=clone.getBoundingClientRect();
+      const sourceAvatar=source.querySelector(".avatar") as HTMLDivElement|null;
       const cloneAvatar=clone.querySelector(".avatar") as HTMLDivElement|null;
-      if(cloneAvatar&&avatarImage){
-        // Use the original data URL state, not the rendered DOM image, for reliable Safari export.
-        const avatar=document.createElement("img");
-        avatar.src=avatarImage;
-        avatar.alt="";
-        avatar.setAttribute("style","display:block;width:100%;height:100%;object-fit:cover;border-radius:50%");
-        cloneAvatar.replaceChildren(avatar);
-        try{await avatar.decode()}catch{
-          await new Promise<void>(resolve=>{avatar.onload=()=>resolve();avatar.onerror=()=>resolve()});
-        }
-      }
+      const avatarRect=cloneAvatar?.getBoundingClientRect();
+      const relativeAvatar=avatarRect?{
+        x:avatarRect.left-cloneRect.left,
+        y:avatarRect.top-cloneRect.top,
+        width:avatarRect.width,
+        height:avatarRect.height
+      }:null;
+      // Remove the avatar from DOM rasterization. Safari's html-to-image clone path has repeatedly dropped it.
+      if(cloneAvatar)cloneAvatar.replaceChildren();
       const png=await toPng(clone,{pixelRatio:2,skipAutoScale:false,width:1200,height:clone.scrollHeight,style:{left:"0",top:"0",transform:"none"}});
-      return withMetadata(png,makePayload());
+      if(!avatarImage||!relativeAvatar)return withMetadata(png,makePayload());
+      // Composite the avatar onto the finished PNG with Canvas, independently of html-to-image.
+      const loadImage=(src:string)=>new Promise<HTMLImageElement>((resolve,reject)=>{
+        const image=new Image();
+        image.onload=()=>resolve(image);
+        image.onerror=()=>reject(new Error("Image failed to load"));
+        image.src=src;
+        if(image.complete&&image.naturalWidth>0)resolve(image);
+      });
+      const [base,avatar]=await Promise.all([loadImage(png),loadImage(avatarImage)]);
+      const canvas=document.createElement("canvas");
+      canvas.width=base.naturalWidth;
+      canvas.height=base.naturalHeight;
+      const ctx=canvas.getContext("2d");
+      if(!ctx)return withMetadata(png,makePayload());
+      ctx.drawImage(base,0,0);
+      const scaleX=base.naturalWidth/1200;
+      const scaleY=base.naturalHeight/clone.scrollHeight;
+      const x=relativeAvatar.x*scaleX;
+      const y=relativeAvatar.y*scaleY;
+      const w=relativeAvatar.width*scaleX;
+      const h=relativeAvatar.height*scaleY;
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(x+w/2,y+h/2,w/2,h/2,0,0,Math.PI*2);
+      ctx.clip();
+      const ratio=Math.max(w/avatar.naturalWidth,h/avatar.naturalHeight);
+      const sw=w/ratio,sh=h/ratio;
+      ctx.drawImage(avatar,(avatar.naturalWidth-sw)/2,(avatar.naturalHeight-sh)/2,sw,sh,x,y,w,h);
+      ctx.restore();
+      return withMetadata(canvas.toDataURL("image/png"),makePayload());
     }finally{clone.remove()}
   };
   const exportCard=async()=>{const url=await makePng();if(!url)return;const mobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);if(mobile){setMobileSaveUrl(url);return;}const a=document.createElement("a");a.download="profile-book.png";a.href=url;a.click()};
