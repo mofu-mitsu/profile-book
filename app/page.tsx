@@ -173,17 +173,17 @@ export default function Home(){
         }catch{}
       }));
       // Ensure the avatar is present in the export DOM even on Safari, where cloneNode can lose image decode state.
-      const sourceAvatar=source.querySelector(".avatar img") as HTMLImageElement|null;
       const cloneAvatar=clone.querySelector(".avatar") as HTMLDivElement|null;
-      if(sourceAvatar&&cloneAvatar){
-        const avatar=sourceAvatar.cloneNode(true) as HTMLImageElement;
-        avatar.removeAttribute("srcset");
-        avatar.src=sourceAvatar.currentSrc||sourceAvatar.src;
-        avatar.style.width="100%";
-        avatar.style.height="100%";
-        avatar.style.objectFit="cover";
+      if(cloneAvatar&&avatarImage){
+        // Use the original data URL state, not the rendered DOM image, for reliable Safari export.
+        const avatar=document.createElement("img");
+        avatar.src=avatarImage;
+        avatar.alt="";
+        avatar.setAttribute("style","display:block;width:100%;height:100%;object-fit:cover;border-radius:50%");
         cloneAvatar.replaceChildren(avatar);
-        try{if(typeof avatar.decode==="function")await avatar.decode()}catch{}
+        try{await avatar.decode()}catch{
+          await new Promise<void>(resolve=>{avatar.onload=()=>resolve();avatar.onerror=()=>resolve()});
+        }
       }
       const png=await toPng(clone,{pixelRatio:2,skipAutoScale:false,width:1200,height:clone.scrollHeight,style:{left:"0",top:"0",transform:"none"}});
       return withMetadata(png,makePayload());
